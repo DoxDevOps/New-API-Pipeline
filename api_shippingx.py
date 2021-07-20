@@ -21,14 +21,14 @@ def get_xi_data(url):
 * @params url, params
 * return dict
 """
-def alert(url, params):
-    headers = {'Content-type': 'application/json; charset=utf-8'}
-    r = requests.post(url, json=params, headers=headers)
-    return r
+#def alert(url, params):
+ #   headers = {'Content-type': 'application/json; charset=utf-8'}
+ #   r = requests.post(url, json=params, headers=headers)
+ #   return r
 
-recipients = ["+265998006237", "+265991450316", "+265995246144", "+265999611280", "+26888741745"]
+#recipients = ["+265998006237", "+265991450316", "+265995246144", "+265999611280", "+26888741745"]
 
-cluster = get_xi_data('http://10.44.0.52/sites/api/v1/get_single_cluster/9')
+cluster = get_xi_data('http://10.44.0.52/sites/api/v1/get_single_cluster/3')
 
 for site_id in cluster['site']:
     site = get_xi_data('http://10.44.0.52/sites/api/v1/get_single_site/' + str(site_id))
@@ -46,70 +46,71 @@ for site_id in cluster['site']:
             # shipping backup script
             #push_backup_script = "rsync " + "-r $WORKSPACE/devops_api_backup.sh " + site['username'] + "@" + site['ip_address'] + ":/var/www"
             #os.system(push_backup_script)
-            
+
             # backing up application folder [API]
             #backup_script = "ssh " + site['username'] + "@" + site['ip_address'] + " 'cd /var/www && chmod 777 devops_api_backup.sh && ./devops_api_backup.sh'"
             #os.system(backup_script)
-            
+            # backing up application folder [API]
+            # backup_script = "ssh " + site['username'] + "@" + site['ip_address'] + " 'cd /var/www && chmod 777 devops_api_backup.sh && ./devops_api_backup.sh'"
+            # os.system(backup_script)
+
             # ship data to remote site
-            push_api = "rsync " + "-r $WORKSPACE/BHT-EMR-API " + site['username'] + "@" + site['ip_address'] + ":/var/www"
+            push_api = "cd /$WORKSPACE/BHT-EMR-API " + "git push --tags origin " + site['username'] + "@" + site[
+                'ip_address'] + ":/var/www/BHT-EMR-API"
             os.system(push_api)
-            
+
             # run setup script
-            run_api_script = "ssh " + site['username'] + "@" + site['ip_address'] + " 'cd /var/www/BHT-EMR-API && ./api_setup.sh'"
+            run_api_script = "ssh " + site['username'] + "@" + site[
+                'ip_address'] + " 'cd /var/www/BHT-EMR-API && ./api_setup.sh'"
             os.system(run_api_script)
-            
-            result = Connection("" + site['username'] + "@" + site['ip_address'] + "").run('cd /var/www/BHT-EMR-API && git describe', hide=True)
-            
-            msg = "{0.stdout}"
-            
-            version = msg.format(result).strip()
-            
-            api_version = "v4.11.0"
-            
-            if api_version == version:
-                msgx = "Hi there,\n\nDeployment of API to " + version + " for " + site['name'] + " completed succesfully.\n\nThanks!\nEGPAF HIS."
-            else:
-                msgx = "Hi there,\n\nSomething went wrong while checking out to the latest API version. Current version is " + version + " for " + site['name'] + ".\n\nThanks!\nEGPAF HIS."
+
+
+   #         result = Connection("" + site['username'] + "@" + site['ip_address'] + "").run(
+    #           'cd /var/www/BHT-EMR-API && git describe', hide=True)
+
+          #  msg = "{0.stdout}"
+
+          #  version = msg.format(result).strip()
+
+         #   api_version = "v4.11.0"
+
+          #  if api_version == version:
+          #      msgx = "Hi there,\n\nDeployment of API to " + version + " for " + site[
+          #          'name'] + " completed succesfully.\n\nThanks!\nEGPAF HIS."
+          #  else:
+           #     msgx = "Hi there,\n\nSomething went wrong while checking out to the latest API version. Current version is " + version + " for " + \
+          #             site['name'] + ".\n\nThanks!\nEGPAF HIS."
 
             # send sms alert
-            for recipient in recipients:
-                msg = "Hi there,\n\nDeployment of API to " + version + " for " + site['name'] + " completed succesfully.\n\nThanks!\nEGPAF HIS."
-                params = {
-                    "tenant_id": "12345",
-                    "recipient": recipient,
-                    "message": msgx,
-                    "message_category": "signup",
-                    "brand_name": "EGPAF-HIS",    
-                    "type": "internal"
-                }
-                alert("http://ec2-52-14-138-182.us-east-2.compute.amazonaws.com:56733/v1/sms/send", params)
+          #  for recipient in recipients:
+          #      msg = "Hi there,\n\nDeployment of API to " + version + " for " + site[
+          #          'name'] + " completed succesfully.\n\nThanks!\nEGPAF HIS."
+          #      params = {
+          #          "tenant_id": "12345",
+          #          "recipient": recipient,
+          #          "message": msgx,
+          #          "message_category": "signup",
+          #          "brand_name": "EGPAF-HIS",
+          #          "type": "internal"
+          #      }
+          #      alert("http://ec2-52-14-138-182.us-east-2.compute.amazonaws.com:56733/v1/sms/send", params)
 
             # close the while loop
-            count = 3
-
-        else:
+          #  count = 3
+ #else:
             # increment the count
-            count = count + 1
+          #  count = count + 1
 
             # make sure we are sending the alert at the last pint attempt
-            if count == 3:
-                for recipient in recipients:
-                    msg = "Hi there,\n\nDeployment of API to V4.11.0 for " + site['name'] + " failed to complete after several connection attempts.\n\nThanks!\nEGPAF HIS."
-                    params = {
-                        "tenant_id": "12345",
-                        "recipient": recipient,
-                        "message": msg,
-                        "message_category": "signup",
-                        "brand_name": "EGPAF-HIS",    
-                        "type": "internal"
-                    }
-                    alert("http://ec2-52-14-138-182.us-east-2.compute.amazonaws.com:56733/v1/sms/send", params)
-
-        
-
-
-
-
-
-
+          #  if count == 3:
+          #      for recipient in recipients:
+          #          msg = "Hi there,\n\nDeployment of API to V4.11.0 for " + site['name'] + " failed to complete after several connection attempts.\n\nThanks!\nEGPAF HIS."
+          #          params = {
+          #              "tenant_id": "12345",
+          #              "recipient": recipient,
+          #              "message": msg,
+          #              "message_category": "signup",
+          #              "brand_name": "EGPAF-HIS",
+          #              "type": "internal"
+          #          }
+          #          alert("http://ec2-52-14-138-182.us-east-2.compute.amazonaws.com:56733/v1/sms/send", params)
